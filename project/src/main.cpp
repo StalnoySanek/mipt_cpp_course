@@ -4,18 +4,33 @@
 #include <print>
 #include <string>
 
-std::string parse_param(std::string line, std::string key)
+#include "event_list.h"
+#include "parse.h"
+
+std::string to_string(const nano_edr::Event* event)
 {
-    size_t left = line.find(key) + key.length() + 1;
-    size_t right = line.find(" ", left);
-    if (right == std::string::npos)
-        right = line.size();
-    return line.substr(left, right - left);
+    return std::format("ts={} type={} pid={}", event->ts, event->type, event->pid);
+}
+
+bool get_before_last(const nano_edr::EventList* list, nano_edr::Event* out)
+{
+    if (list->size < 2)
+        return false;
+    nano_edr::EventNode* cur = list->head;
+    while (cur->next != list->tail)
+        cur = cur->next;
+    *out = cur->event;
+    return true;
 }
 
 int main(int argc, char** argv)
 {
+    const std::vector<const char*> patterns = {"wscript.exe",
+                                               ".locked",
+                                               "certutil.exe",
+                                               "\\Startup\\"};
     bool quiet = false;
+    size_t window_size = 64;
 
     // -------------------------------
     // ----- Открытие файла лога -----
@@ -36,12 +51,19 @@ int main(int argc, char** argv)
     // ------------------------------
     // ----- Парсинг параметров -----
     // ------------------------------
-    
+
     for (int i = 2; i < argc; ++i)
     {
         std::string_view arg(argv[i]);
         if (arg == "--quiet")
             quiet = true;
+        else if (arg == "--window-size")
+        {
+            if (i + 1 >= argc)
+                std::print(stderr, "неверное исользование --window-size: --window-size `Число`");
+            i++;
+            window_size = std::stoull(argv[i]);
+        }
         else
         {
             std::print(stderr, "неизвестный аргумент: {}\n", arg);
@@ -49,6 +71,9 @@ int main(int argc, char** argv)
         }
     }
 
+    nano_edr::Event event;
+    nano_edr::EventList event_list;
+    event_list.capacity = window_size;
     std::string line;
     std::map<std::string, int> types;
     long long lines = 0;
@@ -56,17 +81,27 @@ int main(int argc, char** argv)
     while (std::getline(log, line))
     {
         ++lines;
-        if (line.empty() ||
-            line.starts_with("#") ||
-            line.starts_with(";") ||
-            line.find("ts") == std::string::npos)
+        if (nano_edr::IsBlankOrComment(&line))
             continue;
-        ++events;
-        ++types[parse_param(line, "type")];
 
-        for (auto& pattern : {"wscript.exe", ".locked", "certutil.exe", "\\Startup\\"})
+        if (!nano_edr::ParseEventLine(&line, &event))
+            continue;
+
+        types[event.type]++;
+        for (auto& pattern : patterns)
             if (line.find(pattern) != std::string::npos)
+            {
                 std::print("[DETECT] строка {}, признак {}: {}\n", lines, pattern, line);
+                if (!quiet)
+                {
+                    nano_edr::Event tmp;
+                    if (get_before_last(&event_list, &tmp))
+                        std::print("[CTX] -2: {}\n", to_string(&tmp));
+                    if (event_list.tail)
+                        std::print("[CTX] -1: {}\n", to_string(&event_list.tail->event));
+                }
+            }
+        nano_edr::ListPushBack(&event_list, &event);
     }
 
     if (!quiet)
