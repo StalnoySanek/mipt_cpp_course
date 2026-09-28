@@ -1,116 +1,143 @@
+#include <charconv>
 #include <cstdio>
 #include <fstream>
 #include <map>
 #include <print>
 #include <string>
 
+#include "agent_rules.h"
 #include "event_list.h"
 #include "parse.h"
+#include "rules.h"
 
-std::string to_string(const nano_edr::Event* event)
+void print_context(nano_edr::EventNode* ctx)
 {
-    return std::format("ts={} type={} pid={}", event->ts, event->type, event->pid);
+    int ctx_size = 0;
+    auto head = ctx;
+    while (head)
+    {
+        ctx_size++;
+        head = head->next;
+    }
+    while (ctx_size > 0)
+    {
+        std::print("[CTX] -{}: ts={} type={} pid={}\n",
+                   ctx_size,
+                   ctx->event.ts,
+                   ctx->event.type,
+                   ctx->event.pid);
+        ctx = ctx->next;
+        ctx_size--;
+    }
 }
 
-bool get_before_last(const nano_edr::EventList* list, nano_edr::Event* out)
+struct Options
 {
-    if (list->size < 2)
-        return false;
-    nano_edr::EventNode* cur = list->head;
-    while (cur->next != list->tail)
-        cur = cur->next;
-    *out = cur->event;
-    return true;
-}
-
-int main(int argc, char** argv)
-{
-    const std::vector<const char*> patterns = {"wscript.exe",
-                                               ".locked",
-                                               "certutil.exe",
-                                               "\\Startup\\"};
+    const size_t ctx_size = 2;
+    std::string path = "";
     bool quiet = false;
     size_t window_size = 64;
+};
 
-    // -------------------------------
-    // ----- Открытие файла лога -----
-    // -------------------------------
-
-    if (argc < 2 || std::string_view(argv[1]).starts_with("-"))
-    {
-        std::print(stderr, "использование: nano-edr <журнал.log> <флаги>\n");
-        return 2;
-    }
-    std::ifstream log(argv[1]);
-    if (!log)
-    {
-        std::print(stderr, "не удалось открыть журнал: {}\n", argv[1]);
-        return 2;
-    }
-
-    // ------------------------------
-    // ----- Парсинг параметров -----
-    // ------------------------------
-
-    for (int i = 2; i < argc; ++i)
+bool parse_options(int argc, char** argv, Options& out)
+{
+    for (int i = 1; i < argc; ++i)
     {
         std::string_view arg(argv[i]);
         if (arg == "--quiet")
-            quiet = true;
+            out.quiet = true;
         else if (arg == "--window-size")
         {
             if (i + 1 >= argc)
-                std::print(stderr, "неверное исользование --window-size: --window-size `Число`");
+                return false;
             i++;
-            window_size = std::stoull(argv[i]);
-        }
-        else
-        {
-            std::print(stderr, "неизвестный аргумент: {}\n", arg);
-            return 2;
-        }
-    }
+            const std::string_view window_size_str(argv[i]);
+            const char* begin = window_size_str.data();
+            const char* end = begin + window_size_str.size();
+            const auto res = std::from_chars(begin, end, out.window_size);
 
+            if (res.ec != std::errc() || res.ptr != end)
+                return false;
+        }
+        else if (out.path.empty())
+            out.path = std::string(argv[i]);
+        else
+            return false;  // path has already existed
+    }
+    return true;
+}
+
+size_t handle_log(std::ifstream& log, const Options& options, std::map<std::string, size_t>& out_types)
+{
     nano_edr::Event event;
-    nano_edr::EventList event_list;
-    event_list.capacity = window_size;
     std::string line;
-    std::map<std::string, int> types;
-    long long lines = 0;
-    long long events = 0;
+    size_t cnt_events = 0;
+    nano_edr::EventList event_list;
+    event_list.capacity = options.window_size;
+    nano_edr::EventNode* ctx = nullptr;
+    out_types.clear();
+
     while (std::getline(log, line))
     {
-        ++lines;
         if (nano_edr::IsBlankOrComment(&line))
             continue;
 
         if (!nano_edr::ParseEventLine(&line, &event))
             continue;
 
-        types[event.type]++;
-        for (auto& pattern : patterns)
-            if (line.find(pattern) != std::string::npos)
-            {
-                std::print("[DETECT] строка {}, признак {}: {}\n", lines, pattern, line);
-                if (!quiet)
-                {
-                    nano_edr::Event tmp;
-                    if (get_before_last(&event_list, &tmp))
-                        std::print("[CTX] -2: {}\n", to_string(&tmp));
-                    if (event_list.tail)
-                        std::print("[CTX] -1: {}\n", to_string(&event_list.tail->event));
-                }
-            }
-        nano_edr::ListPushBack(&event_list, &event);
-    }
+        out_types[event.type]++;
+        cnt_events++;
+        if (nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount()) && !options.quiet)
+            print_context(ctx);
 
-    if (!quiet)
-    {
-        std::print("Всего обнаружено {} событий:\n", events);
-        for (auto& [type, count] : types)
-        {
-            std::print("\t{} -> {}\n", type, count);
-        }
+        nano_edr::ListPushBack(&event_list, &event);
+        ctx = event_list.size <= options.ctx_size ? event_list.head : ctx->next;
     }
-    return 0;
+    return cnt_events;
+}
+
+int main(int argc, char** argv)
+{
+    try
+    {
+        Options options;
+        std::map<std::string, size_t> types;
+
+        // ------------------------------------
+        // ---- parse options and open log ----
+        // ------------------------------------
+
+        if (!parse_options(argc, argv, options))
+        {
+            std::print(stderr, "Ошибка парсинга аргументов");
+            return 2;
+        }
+        std::ifstream log(options.path);
+        if (!log)
+        {
+            std::print(stderr, "не удалось открыть журнал: {}\n", options.path);
+            return 2;
+        }
+
+        // ----------------------
+        // ---- main handler ----
+        // ----------------------
+
+        size_t cnt_events = handle_log(log, options, types);
+
+        if (!options.quiet)
+        {
+            std::print("Всего обнаружено {} событий:\n", cnt_events);
+            for (auto& [type, count] : types)
+            {
+                std::print("\t{} -> {}\n", type, count);
+            }
+        }
+        return 0;
+    }
+    catch (const std::exception& e)
+    {
+        std::print(stderr, "Произошла ошибка:\n {}", e.what());
+        return 1;
+    }
 }
