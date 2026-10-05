@@ -5,8 +5,6 @@
 
 #include "fields.h"
 
-#define all(x) x.begin(), x.end()
-
 namespace nano_edr
 {
 
@@ -31,10 +29,8 @@ bool ScriptHostFromTemp(const Event& event)
     if (!ImageIs(event, "wscript.exe") &&
         !ImageIs(event, "cscript.exe"))
         return false;
-    if (!CommandLineContainsPath(event, R"(\appdata\local\temp\)") &&
-        !CommandLineContainsPath(event, R"(\windows\temp\)"))
-        return false;
-    return true;
+    return CommandLineContainsPath(event, R"(\appdata\local\temp\)") ||
+           CommandLineContainsPath(event, R"(\windows\temp\)");
 }
 
 bool LolbinDownload(const Event& event)
@@ -44,12 +40,10 @@ bool LolbinDownload(const Event& event)
     if (!ImageIs(event, "certutil.exe") &&
         !ImageIs(event, "bitsadmin.exe"))
         return false;
-    if (!CommandLineContains(event, "urlcache") &&
-        !CommandLineContains(event, "transfer") &&
-        !CommandLineContains(event, "http:") &&
-        !CommandLineContains(event, "https:"))
-        return false;
-    return true;
+    return CommandLineContains(event, "urlcache") ||
+           CommandLineContains(event, "transfer") ||
+           CommandLineContains(event, "http:") ||
+           CommandLineContains(event, "https:");
 }
 
 bool HiddenPowershell(const Event& event)
@@ -59,12 +53,10 @@ bool HiddenPowershell(const Event& event)
     if (!ImageIs(event, "powershell.exe") &&
         !ImageIs(event, "pwsh.exe"))
         return false;
-    if (!CommandLineContains(event, "-w hidden") &&
-        !CommandLineContains(event, "-windowstyle hidden") &&
-        !CommandLineContains(event, "-enc") &&
-        !CommandLineContains(event, "-encodedcommand"))
-        return false;
-    return true;
+    return CommandLineContains(event, "-w hidden") ||
+           CommandLineContains(event, "-windowstyle hidden") ||
+           CommandLineContains(event, "-enc") ||
+           CommandLineContains(event, "-encodedcommand");
 }
 
 bool AutostartWrite(const Event& event)

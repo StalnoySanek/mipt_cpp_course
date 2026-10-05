@@ -10,15 +10,8 @@
 #include "parse.h"
 #include "rules.h"
 
-void print_context(nano_edr::EventNode* ctx)
+void print_context(nano_edr::EventNode* ctx, size_t ctx_size)
 {
-    int ctx_size = 0;
-    auto head = ctx;
-    while (head)
-    {
-        ctx_size++;
-        head = head->next;
-    }
     while (ctx_size > 0)
     {
         std::print("[CTX] -{}: ts={} type={} pid={}\n",
@@ -88,7 +81,7 @@ size_t handle_log(std::ifstream& log, const Options& options, std::map<std::stri
         out_types[event.type]++;
         cnt_events++;
         if (nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount()) && !options.quiet)
-            print_context(ctx);
+            print_context(ctx, std::min(event_list.size, options.ctx_size));
 
         nano_edr::ListPushBack(&event_list, &event);
         ctx = event_list.size <= options.ctx_size ? event_list.head : ctx->next;

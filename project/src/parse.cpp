@@ -24,14 +24,13 @@ bool is_space(char c)
 bool parse_key(const std::string* line, size_t* pos, std::string* out)
 {
     *out = "";
-    while (true)
+    while (*pos < line->length())
     {
-        // end line after key is invalid
-        if (*pos == line->length())
-            return false;
-
         if ((*line)[*pos] == '=')
-            break;
+        {
+            ++*pos;
+            return !out->empty();
+        }
 
         // space in key is invalid
         if (is_space((*line)[*pos]))
@@ -40,20 +39,17 @@ bool parse_key(const std::string* line, size_t* pos, std::string* out)
         *out += (*line)[*pos];
         ++*pos;
     }
-    ++*pos;
-    return !out->empty();
+
+    // end line after key is invalid
+    return false;
 }
 
 bool parse_value(const std::string* line, size_t* pos, std::string* out)
 {
     *out = "";
     bool IsPath = false;
-    while (true)
+    while (*pos < line->length())
     {
-        // end line is end of value
-        if (*pos == line->length())
-            break;
-
         char c = (*line)[*pos];
 
         // space is end of value (if not a path)
@@ -79,9 +75,7 @@ bool parse_value(const std::string* line, size_t* pos, std::string* out)
         ++*pos;
     }
 
-    if (IsPath)
-        return false;
-    return true;
+    return !IsPath;
 }
 
 bool ParseEventLine(const std::string* line, Event* out)

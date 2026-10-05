@@ -15,6 +15,21 @@ std::string to_lower(const std::string& s)
     return res;
 }
 
+char to_lower(const char c)
+{
+    return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+}
+
+void replace_all(std::string& s, const std::string& from, const std::string& to)
+{
+    auto pos = s.find(from);
+    while (pos != std::string::npos)
+    {
+        s.replace(pos, from.size(), to);
+        pos = s.find(from);
+    }
+}
+
 const std::string* FindField(const Event& event, const std::string& key)
 {
     for (const auto& field : event.fields)
@@ -93,13 +108,11 @@ std::string NormalizePath(const std::string& path)
             continue;
         }
 
-        res += c == '/' ? '\\' : c;
+        res += c == '/' ? '\\' : to_lower(c);
     }
-    if (auto tmp = res.find("%TMP%"); tmp != std::string::npos)
-        res.replace(tmp, 5, R"(\appdata\local\temp)");
-    if (auto temp = res.find("%TEMP%"); temp != std::string::npos)
-        res.replace(temp, 6, R"(\appdata\local\temp)");
-    res = to_lower(res);
+    // res = to_lower(res);
+    replace_all(res, "%tmp%", R"(\appdata\local\temp)");
+    replace_all(res, "%temp%", R"(\appdata\local\temp)");
     return res;
 }
 
