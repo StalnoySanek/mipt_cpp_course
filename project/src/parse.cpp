@@ -4,16 +4,16 @@ const char* ws = " \t";
 
 namespace nano_edr
 {
-bool IsBlankOrComment(const std::string* line)
+bool IsBlankOrComment(const std::string& line)
 {
-    if (line->empty())
+    if (line.empty())
         return true;
 
-    size_t pos = line->find_first_not_of(ws);
+    size_t pos = line.find_first_not_of(ws);
     if (pos == std::string::npos)
         return true;
 
-    return (*line)[pos] == '#' || (*line)[pos] == ';';
+    return line[pos] == '#' || line[pos] == ';';
 }
 
 bool is_space(char c)
@@ -21,22 +21,22 @@ bool is_space(char c)
     return std::string_view(ws).contains(c);
 }
 
-bool parse_key(const std::string* line, size_t* pos, std::string* out)
+bool parse_key(const std::string& line, size_t* pos, std::string* out)
 {
     *out = "";
-    while (*pos < line->length())
+    while (*pos < line.length())
     {
-        if ((*line)[*pos] == '=')
+        if (line[*pos] == '=')
         {
             ++*pos;
             return !out->empty();
         }
 
         // space in key is invalid
-        if (is_space((*line)[*pos]))
+        if (is_space(line[*pos]))
             return false;
 
-        *out += (*line)[*pos];
+        *out += line[*pos];
         ++*pos;
     }
 
@@ -44,13 +44,13 @@ bool parse_key(const std::string* line, size_t* pos, std::string* out)
     return false;
 }
 
-bool parse_value(const std::string* line, size_t* pos, std::string* out)
+bool parse_value(const std::string& line, size_t* pos, std::string* out)
 {
     *out = "";
     bool IsPath = false;
-    while (*pos < line->length())
+    while (*pos < line.length())
     {
-        char c = (*line)[*pos];
+        char c = line[*pos];
 
         // space is end of value (if not a path)
         if (!IsPath && is_space(c))
@@ -69,7 +69,7 @@ bool parse_value(const std::string* line, size_t* pos, std::string* out)
         {
             ++*pos;
             // characters after `"` are invalid
-            return *pos >= line->length() || is_space((*line)[*pos]);
+            return *pos >= line.length() || is_space(line[*pos]);
         }
         *out += c;
         ++*pos;
@@ -78,21 +78,20 @@ bool parse_value(const std::string* line, size_t* pos, std::string* out)
     return !IsPath;
 }
 
-bool ParseEventLine(const std::string* line, Event* out)
+bool ParseEventLine(const std::string& line, EventParts* out)
 {
-    *out = Event();
+    *out = EventParts();
     if (IsBlankOrComment(line))
         return false;
 
     std::string key = "";
     std::string value = "";
-    *out = Event();
-    size_t pos = line->find_first_not_of(ws);
-    while (pos < line->length())
+    size_t pos = line.find_first_not_of(ws);
+    while (pos < line.length())
     {
         if (!parse_key(line, &pos, &key) || !parse_value(line, &pos, &value))
             return false;
-        while (pos < line->length() && is_space((*line)[pos]))
+        while (pos < line.length() && is_space(line[pos]))
             ++pos;
         if (key == "ts" && out->ts.empty())
             out->ts = value;

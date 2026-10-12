@@ -16,9 +16,9 @@ void print_context(nano_edr::EventNode* ctx, size_t ctx_size)
     {
         std::print("[CTX] -{}: ts={} type={} pid={}\n",
                    ctx_size,
-                   ctx->event.ts,
-                   ctx->event.type,
-                   ctx->event.pid);
+                   ctx->event.raw_ts(),
+                   ctx->event.type(),
+                   ctx->event.pid());
         ctx = ctx->next;
         ctx_size--;
     }
@@ -62,31 +62,30 @@ bool parse_options(int argc, char** argv, Options& out)
 
 size_t handle_log(std::ifstream& log, const Options& options, std::map<std::string, size_t>& out_types)
 {
-    nano_edr::Event event;
-    std::string line;
-    size_t cnt_events = 0;
-    nano_edr::EventList event_list;
-    event_list.capacity = options.window_size;
-    nano_edr::EventNode* ctx = nullptr;
-    out_types.clear();
+    // nano_edr::Event event;
+    // std::string line;
+    // size_t cnt_events = 0;
+    // nano_edr::EventList event_list(options.window_size);
+    // nano_edr::EventNode* ctx = nullptr;
+    // out_types.clear();
 
-    while (std::getline(log, line))
-    {
-        if (nano_edr::IsBlankOrComment(&line))
-            continue;
+    // while (std::getline(log, line))
+    // {
+    //     if (nano_edr::IsBlankOrComment(&line))
+    //         continue;
 
-        if (!nano_edr::ParseEventLine(&line, &event))
-            continue;
+    //     if (!nano_edr::ParseEventLine(&line, &event))
+    //         continue;
 
-        out_types[event.type]++;
-        cnt_events++;
-        if (nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount()) && !options.quiet)
-            print_context(ctx, std::min(event_list.size, options.ctx_size));
+    //     out_types[event.type]++;
+    //     cnt_events++;
+    //     if (nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount()) && !options.quiet)
+    //         print_context(ctx, std::min(event_list.size, options.ctx_size));
 
-        nano_edr::ListPushBack(&event_list, &event);
-        ctx = event_list.size <= options.ctx_size ? event_list.head : ctx->next;
-    }
-    return cnt_events;
+    //     nano_edr::ListPushBack(&event_list, &event);
+    //     ctx = event_list.size <= options.ctx_size ? event_list.head : ctx->next;
+    // }
+    // return cnt_events;
 }
 
 int main(int argc, char** argv)

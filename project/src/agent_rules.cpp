@@ -61,11 +61,11 @@ bool HiddenPowershell(const Event& event)
 
 bool AutostartWrite(const Event& event)
 {
-    if (event.type != "file_create" &&
-        event.type != "file_move" &&
-        event.type != "file_write")
+    if (event.type() != "file_create" &&
+        event.type() != "file_move" &&
+        event.type() != "file_write")
         return false;
-    const auto path = FindField(event, event.type == "file_move"
+    const auto path = FindField(event, event.type() == "file_move"
                                            ? "to"
                                            : "path");
     return path && NormalizePath(*path).contains(R"(\start menu\programs\startup\)");
@@ -73,11 +73,11 @@ bool AutostartWrite(const Event& event)
 
 bool RansomExtension(const Event& event)
 {
-    if (event.type != "file_create" &&
-        event.type != "file_move" &&
-        event.type != "file_write")
+    if (event.type() != "file_create" &&
+        event.type() != "file_move" &&
+        event.type() != "file_write")
         return false;
-    const auto path = FindField(event, event.type == "file_move"
+    const auto path = FindField(event, event.type() == "file_move"
                                            ? "to"
                                            : "path");
     return path && NormalizePath(*path).ends_with(".locked");
