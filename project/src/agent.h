@@ -5,6 +5,7 @@
 
 #include "event_list.h"
 #include "os_handle.h"
+#include "rule.h"
 
 #ifndef NANO_EDR_AGENT_H
 #define NANO_EDR_AGENT_H
@@ -14,15 +15,16 @@ namespace nano_edr
 class Agent
 {
  public:
-    Agent(std::size_t window_size, bool quiet);  // из --window-size и --quiet
+    Agent(std::size_t window_size, bool quiet);
     void HandleEvent(const Event& event);
-    void PrintSummary() const;  // сводка в конце прогона
-                                // ...
+    void PrintSummary() const;
+
  private:
     size_t cnt_;
     bool quiet_;
-    EventList window_;  // последние события, не больше window_size
+    EventList window_;
     std::map<std::string, size_t> types_;
+    std::vector<MatchRule> rules_;
 
     void print_ctx_();
 };
@@ -34,7 +36,8 @@ class FileSource
     FileSource(const FileSource&) = delete;
     FileSource& operator=(const FileSource&) = delete;
 
-    void Run(Agent* agent);  // строка → EventParts → Event → HandleEvent
+    void Run(Agent* agent);
+
  private:
     std::ifstream log_;
 };

@@ -4,16 +4,10 @@
 #include <charconv>
 #include <stdexcept>
 
+#include "text.h"
+
 namespace nano_edr
 {
-
-std::string to_lower(const std::string& s)
-{
-    std::string res = "";
-    for (const auto& c : s)
-        res += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return res;
-}
 
 char to_lower(const char c)
 {
@@ -91,7 +85,7 @@ bool PathEndsWith(const Event& event, const std::string& suffix)
     const auto path = FindField(event, "path");
     if (!path)
         return false;
-    return NormalizePath(*path).ends_with(to_lower(suffix));
+    return TextEndsWithIgnoreCase(NormalizePath(*path), suffix);
 }
 
 bool CommandLineContains(const Event& event, const std::string& needle)
@@ -99,7 +93,7 @@ bool CommandLineContains(const Event& event, const std::string& needle)
     const auto cmdline = FindField(event, "cmdline");
     if (!cmdline)
         return false;
-    return to_lower(*cmdline).contains(to_lower(needle));
+    return TextContainsIgnoreCase(*cmdline, needle);
 }
 
 std::string NormalizePath(const std::string& path)
