@@ -32,6 +32,12 @@ void replace_all(std::string& s, const std::string& from, const std::string& to)
 
 const std::string* FindField(const Event& event, const std::string& key)
 {
+    if (key == "ts")
+        return &event.raw_ts();
+    if (key == "type")
+        return &event.type();
+    if (key == "pid")
+        return &event.pid();
     for (const auto& field : event.fields())
     {
         if (field.key == key)

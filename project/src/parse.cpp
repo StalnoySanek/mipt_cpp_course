@@ -78,7 +78,7 @@ bool parse_value(const std::string& line, size_t* pos, std::string* out)
     return !IsPath;
 }
 
-bool ParseEventLine(const std::string& line, EventParts* out)
+bool ParseEventParts(const std::string& line, EventParts* out)
 {
     *out = EventParts();
     if (IsBlankOrComment(line))
@@ -102,8 +102,6 @@ bool ParseEventLine(const std::string& line, EventParts* out)
         else
             out->fields.emplace_back(key, value);
     }
-    if (out->ts.empty() || out->type.empty())
-        return false;
     return true;
 }
 }  // namespace nano_edr

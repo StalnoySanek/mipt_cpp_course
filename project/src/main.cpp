@@ -1,33 +1,15 @@
 #include <charconv>
 #include <cstdio>
-#include <fstream>
-#include <map>
 #include <print>
 #include <string>
+#include <string_view>
 
-#include "agent_rules.h"
-#include "event_list.h"
-#include "parse.h"
-#include "rules.h"
-
-void print_context(nano_edr::EventNode* ctx, size_t ctx_size)
-{
-    while (ctx_size > 0)
-    {
-        std::print("[CTX] -{}: ts={} type={} pid={}\n",
-                   ctx_size,
-                   ctx->event.raw_ts(),
-                   ctx->event.type(),
-                   ctx->event.pid());
-        ctx = ctx->next;
-        ctx_size--;
-    }
-}
+#include "agent.h"
 
 struct Options
 {
-    const size_t ctx_size = 2;
-    std::string path = "";
+    bool is_file_mode = false;
+    std::string path;
     bool quiet = false;
     size_t window_size = 64;
 };
@@ -39,6 +21,8 @@ bool parse_options(int argc, char** argv, Options& out)
         std::string_view arg(argv[i]);
         if (arg == "--quiet")
             out.quiet = true;
+        else if (arg == "--file")
+            out.is_file_mode = true;
         else if (arg == "--window-size")
         {
             if (i + 1 >= argc)
@@ -52,40 +36,14 @@ bool parse_options(int argc, char** argv, Options& out)
             if (res.ec != std::errc() || res.ptr != end)
                 return false;
         }
+        else if (!arg.empty() && arg.front() == '-')
+            return false;
         else if (out.path.empty())
             out.path = std::string(argv[i]);
         else
             return false;  // path has already existed
     }
-    return true;
-}
-
-size_t handle_log(std::ifstream& log, const Options& options, std::map<std::string, size_t>& out_types)
-{
-    // nano_edr::Event event;
-    // std::string line;
-    // size_t cnt_events = 0;
-    // nano_edr::EventList event_list(options.window_size);
-    // nano_edr::EventNode* ctx = nullptr;
-    // out_types.clear();
-
-    // while (std::getline(log, line))
-    // {
-    //     if (nano_edr::IsBlankOrComment(&line))
-    //         continue;
-
-    //     if (!nano_edr::ParseEventLine(&line, &event))
-    //         continue;
-
-    //     out_types[event.type]++;
-    //     cnt_events++;
-    //     if (nano_edr::CheckRules(event, nano_edr::AgentRules(), nano_edr::AgentRuleCount()) && !options.quiet)
-    //         print_context(ctx, std::min(event_list.size, options.ctx_size));
-
-    //     nano_edr::ListPushBack(&event_list, &event);
-    //     ctx = event_list.size <= options.ctx_size ? event_list.head : ctx->next;
-    // }
-    // return cnt_events;
+    return !out.path.empty();
 }
 
 int main(int argc, char** argv)
@@ -93,38 +51,25 @@ int main(int argc, char** argv)
     try
     {
         Options options;
-        std::map<std::string, size_t> types;
-
-        // ------------------------------------
-        // ---- parse options and open log ----
-        // ------------------------------------
-
         if (!parse_options(argc, argv, options))
         {
-            std::print(stderr, "Ошибка парсинга аргументов");
-            return 2;
-        }
-        std::ifstream log(options.path);
-        if (!log)
-        {
-            std::print(stderr, "не удалось открыть журнал: {}\n", options.path);
+            std::print(stderr, "Ошибка парсинга аргументов\n");
             return 2;
         }
 
-        // ----------------------
-        // ---- main handler ----
-        // ----------------------
+        nano_edr::Agent agent(options.window_size, options.quiet);
 
-        size_t cnt_events = handle_log(log, options, types);
-
-        if (!options.quiet)
+        if (options.is_file_mode)
         {
-            std::print("Всего обнаружено {} событий:\n", cnt_events);
-            for (auto& [type, count] : types)
-            {
-                std::print("\t{} -> {}\n", type, count);
-            }
+            nano_edr::FileSource source(options.path);
+            source.Run(&agent);
         }
+        else
+        {
+            nano_edr::OsSource source(options.path);
+            source.Run(&agent);
+        }
+
         return 0;
     }
     catch (const std::exception& e)

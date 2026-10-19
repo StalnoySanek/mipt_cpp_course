@@ -13,8 +13,10 @@ Agent::Agent(std::size_t window_size, bool quiet)
 
 void Agent::HandleEvent(const Event& event)
 {
-    cnt_ += CheckRules(event, AgentRules(), AgentRuleCount());
-    if (!quiet_)
+    ++cnt_;
+    ++types_[event.type()];
+    const size_t detections = CheckRules(event, AgentRules(), AgentRuleCount());
+    if (!quiet_ && detections != 0)
         print_ctx_();
     window_.PushBack(event);
 }
@@ -72,5 +74,66 @@ void FileSource::Run(Agent* agent)
         }
     }
     agent->PrintSummary();
+}
+
+OsSource::OsSource(const std::string& path) : os_(path) {}
+
+void OsSource::Trampoline(const os_event* event, void* context) noexcept
+{
+    try
+    {
+        if (event != nullptr && context != nullptr)
+            static_cast<OsSource*>(context)->HandleEvent(*event);
+    }
+    catch (...)
+    {
+    }
+}
+
+void OsSource::HandleEvent(const os_event& event) noexcept
+{
+    try
+    {
+        EventParts parts;
+        parts.ts = std::to_string(event.ts);
+        parts.type = event.type == nullptr ? "" : event.type;
+        if (event.pid != 0)
+            parts.pid = std::to_string(event.pid);
+
+        parts.fields.reserve(event.field_count);
+        for (size_t i = 0; i < event.field_count; ++i)
+        {
+            if (event.fields == nullptr ||
+                event.fields[i].key == nullptr ||
+                event.fields[i].value == nullptr)
+                throw std::invalid_argument("invalid os event field");
+            parts.fields.push_back({event.fields[i].key, event.fields[i].value});
+        }
+
+        agent_->HandleEvent(Event(parts));
+    }
+    catch (...)
+    {
+    }
+}
+
+void OsSource::Run(Agent* agent)
+{
+    agent_ = agent;
+    os_.Subscribe(&OsSource::Trampoline, this);
+    os_.Start();
+
+    while (true)
+    {
+        const os_status status = os_.Wait(100);
+        if (status == OS_TIMEOUT)
+            continue;
+        if (status == OS_OK)
+            break;
+        throw std::runtime_error(std::string("Ошибка источника os: ") +
+                                 os_status_str(status));
+    }
+
+    agent_->PrintSummary();
 }
 }  // namespace nano_edr

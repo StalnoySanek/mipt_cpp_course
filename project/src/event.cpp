@@ -1,5 +1,7 @@
 #include "event.h"
 
+#include <charconv>
+#include <format>
 #include <stdexcept>
 
 namespace nano_edr
@@ -16,9 +18,30 @@ Event::Event(const EventParts& parts)
                                parts.ts.data() + parts.ts.size(),
                                temp);
     if (res.ec != std::errc())
-        throw std::invalid_argument("can not parse ts as uint64_t");
+        throw std::invalid_argument("can not parse ts as uint64_t. raw_ts=" + raw_ts_);
     if (res.ptr != parts.ts.data() + parts.ts.size())
-        throw std::invalid_argument("size of ts > size of uint64_t");
+        throw std::invalid_argument("size of ts > size of uint64_t. raw_ts=" + raw_ts_);
     ts_ = Timestamp(temp);
+}
+
+std::string ToString(const std::vector<Field>& fields)
+{
+    std::string res;
+    for (auto& field : fields)
+    {
+        res += std::format("{}={} ", field.key, field.value);
+    }
+    return res;
+}
+
+std::string ToString(const Event& event)
+{
+    return std::format("ts={} type={} pid={} | {}",
+                       event.raw_ts(), event.type(), event.pid(), ToString(event.fields()));
+}
+
+std::ostream& operator<<(std::ostream& out, const Event& event)
+{
+    return out << ToString(event);
 }
 }  // namespace nano_edr

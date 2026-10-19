@@ -8,7 +8,10 @@ void EventList::PushBack(const Event& event)
     if (!tail_)
         tail_ = head_ = new EventNode(event);
     else
+    {
         tail_->next = new EventNode(event);
+        tail_ = tail_->next;
+    }
 
     if (capacity_ != 0 && size_ > capacity_)
         PopFront();
@@ -19,7 +22,7 @@ void EventList::PopFront()
     switch (size_)
     {
         case 0:
-            break;
+            return;
         case 1:
             delete head_;
             head_ = tail_ = nullptr;

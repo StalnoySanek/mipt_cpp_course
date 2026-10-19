@@ -1,8 +1,10 @@
 #include <fstream>
 #include <map>
 #include <print>
+#include <string>
 
 #include "event_list.h"
+#include "os_handle.h"
 
 #ifndef NANO_EDR_AGENT_H
 #define NANO_EDR_AGENT_H
@@ -35,6 +37,23 @@ class FileSource
     void Run(Agent* agent);  // строка → EventParts → Event → HandleEvent
  private:
     std::ifstream log_;
+};
+
+class OsSource
+{
+ public:
+    explicit OsSource(const std::string& path);
+    OsSource(const OsSource&) = delete;
+    OsSource& operator=(const OsSource&) = delete;
+
+    void Run(Agent* agent);
+
+ private:
+    static void Trampoline(const os_event* event, void* context) noexcept;
+    void HandleEvent(const os_event& event) noexcept;
+
+    OsHandle os_;
+    Agent* agent_ = nullptr;
 };
 }  // namespace nano_edr
 
