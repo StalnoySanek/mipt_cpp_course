@@ -4,10 +4,13 @@
 #include <string>
 #include <string_view>
 
-#include "agent.h"
+#include "headers/agent.h"
+#include "headers/file_source.h"
+#include "headers/os_source.h"
 
 struct Options
 {
+    const size_t ctx_size = 2;
     bool is_file_mode = false;
     std::string path;
     bool quiet = false;
@@ -57,7 +60,7 @@ int main(int argc, char** argv)
             return 2;
         }
 
-        nano_edr::Agent agent(options.window_size, options.quiet);
+        nano_edr::Agent agent(options.window_size, options.quiet, options.ctx_size);
 
         if (options.is_file_mode)
         {
@@ -69,7 +72,7 @@ int main(int argc, char** argv)
             nano_edr::OsSource source(options.path);
             source.Run(&agent);
         }
-
+        agent.PrintSummary();
         return 0;
     }
     catch (const std::exception& e)

@@ -4,7 +4,7 @@
 #include <charconv>
 #include <stdexcept>
 
-#include "text.h"
+#include "headers/text.h"
 
 namespace nano_edr
 {

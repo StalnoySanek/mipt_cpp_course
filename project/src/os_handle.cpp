@@ -27,7 +27,7 @@ void OsHandle::Subscribe(os_event_cb callback, void* context)
     if (auto res = os_event_subscribe(handle_, callback, context);
         res != os_status::OS_OK)
     {
-        throw std::runtime_error("Error in `OsHandle::Subscribe`.");
+        throw std::runtime_error("Error in `OsHandle::Subscribe`. Status -> " + std::string(os_status_str(res)));
     }
 }
 
@@ -36,7 +36,7 @@ void OsHandle::Start()
     if (auto res = os_start(handle_);
         res != os_status::OS_OK)
     {
-        throw std::runtime_error("Error in `OsHandle::Start`.");
+        throw std::runtime_error("Error in `OsHandle::Start`. Status -> " + std::string(os_status_str(res)));
     }
 }
 

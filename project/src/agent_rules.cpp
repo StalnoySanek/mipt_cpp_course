@@ -1,4 +1,4 @@
-#include "agent_rules.h"
+#include "headers/agent_rules.h"
 
 #include <algorithm>
 #include <array>
@@ -47,7 +47,7 @@ std::vector<MatchRule> BuildAgentRules()
     hidden_powershell.AddCondition(Condition::Contains("cmdline", {"-w hidden",
                                                                    "-windowstyle hidden",
                                                                    "-enc",
-                                                                   "encodedcommand"}));
+                                                                   "-encodedcommand"}));
 
     // --------------------------------
     // ----- autostart_write_path -----
