@@ -1,7 +1,7 @@
 #include "conditions.h"
 
 #include "fields.h"
-#include "headers/text.h"
+#include "text.h"
 
 namespace nano_edr
 {

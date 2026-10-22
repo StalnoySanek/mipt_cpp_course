@@ -4,9 +4,9 @@
 #include <string>
 #include <string_view>
 
-#include "headers/agent.h"
-#include "headers/file_source.h"
-#include "headers/os_source.h"
+#include "agent.h"
+#include "file_source.h"
+#include "os_source.h"
 
 struct Options
 {

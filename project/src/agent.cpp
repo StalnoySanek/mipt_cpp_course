@@ -1,15 +1,15 @@
-#include "headers/agent.h"
+#include "agent.h"
 
 #include <print>
 #include <stdexcept>
 
-#include "headers/agent_rules.h"
+#include "agent_rules.h"
 #include "parse.h"
 #include "rules.h"
 namespace nano_edr
 {
 Agent::Agent(std::size_t window_size, bool quiet, size_t ctx_size)
-    : cnt_(0), quiet_(quiet), window_(window_size), types_(), rules_(BuildAgentRules()), ctx_(ctx_size) {}
+    : cnt_(0), quiet_(quiet), window_(window_size), types_(), rules_(BuildAgentRules()), ctx_size_(ctx_size), ctx_head_(nullptr) {}
 
 void Agent::HandleEvent(const Event& event)
 {
@@ -31,13 +31,13 @@ void Agent::HandleEvent(const Event& event)
     if (!quiet_ && detected)
         print_ctx_();
     window_.PushBack(event);
-    ctx_.PushBack(event);
+    ctx_head_ = window_.size() <= ctx_size_ ? window_.head() : ctx_head_->next;
 }
 
 void Agent::print_ctx_()
 {
-    auto ctx = ctx_.head();
-    for (size_t i = ctx_.size(); i > 0; --i)
+    auto ctx = ctx_head_;
+    for (size_t i = ctx_size_; i > 0; --i)
     {
         std::print("[CTX] -{}: ts={} type={} pid={}\n",
                    i,

@@ -1,4 +1,4 @@
-#include "headers/os_source.h"
+#include "os_source.h"
 
 namespace nano_edr
 {
@@ -28,7 +28,7 @@ void OsSource::Trampoline(const os_event* event, void* context) noexcept
     }
     catch (...)
     {
-        std::print(stderr, "Неизвестная ошибка в OsSource::Trampoline");
+        std::print(stderr, "Неизвестная ошибка в OsSource::Trampoline\n");
     }
 }
 

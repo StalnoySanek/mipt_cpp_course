@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 
 bool TextEqualsIgnoreCase(const std::string& left, const std::string& right);

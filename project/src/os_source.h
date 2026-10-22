@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include "headers/agent.h"
+#include "agent.h"
 #include "os_handle.h"
 
 namespace nano_edr

@@ -24,7 +24,8 @@ class Agent
     EventList window_;
     std::map<std::string, size_t> types_;
     std::vector<MatchRule> rules_;
-    EventList ctx_;
+    size_t ctx_size_;
+    const EventNode* ctx_head_;
 
     void print_ctx_();
 };

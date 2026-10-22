@@ -1,4 +1,4 @@
-#include "headers/file_source.h"
+#include "file_source.h"
 
 #include <print>
 
@@ -35,7 +35,7 @@ void FileSource::Run(Agent* agent)
         }
         catch (...)
         {
-            std::print(stderr, "Неизвестная ошибка в FileSource::Run");
+            std::print(stderr, "Неизвестная ошибка в FileSource::Run\n");
         }
     }
 }
