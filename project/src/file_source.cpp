@@ -1,6 +1,8 @@
 #include "file_source.h"
 
+#include <fstream>
 #include <print>
+#include <string>
 
 #include "parse.h"
 namespace nano_edr
@@ -12,7 +14,7 @@ FileSource::FileSource(const std::string& path)
         throw std::runtime_error("Error: can not open log `path = `" + path);
 }
 
-void FileSource::Run(Agent* agent)
+void FileSource::Run(IEventHandler* handler)
 {
     std::string line;
     EventParts parts;
@@ -21,20 +23,28 @@ void FileSource::Run(Agent* agent)
         try
         {
             if (IsBlankOrComment(line))
+            {
+                handler->OnSkipped();
                 continue;
+            }
 
             if (!ParseEventParts(line, &parts))
+            {
+                handler->OnBroken();
                 continue;
+            }
 
             Event event(parts);
-            agent->HandleEvent(event);
+            handler->HandleEvent(event);
         }
         catch (const std::exception& e)
         {
+            handler->OnBroken();
             std::print(stderr, "Ошибка в FileSource::Run:\n{}\n", e.what());
         }
         catch (...)
         {
+            handler->OnBroken();
             std::print(stderr, "Неизвестная ошибка в FileSource::Run\n");
         }
     }

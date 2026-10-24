@@ -1,18 +1,19 @@
 #pragma once
+#include <fstream>
 #include <string>
 
-#include "agent.h"
+#include "event_source.h"
 
 namespace nano_edr
 {
-class FileSource
+class FileSource : public IEventSource
 {
  public:
     explicit FileSource(const std::string& path);
     FileSource(const FileSource&) = delete;
     FileSource& operator=(const FileSource&) = delete;
 
-    void Run(Agent* agent);
+    void Run(IEventHandler* handler) override;
 
  private:
     std::ifstream log_;

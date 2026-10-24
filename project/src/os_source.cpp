@@ -1,11 +1,14 @@
 #include "os_source.h"
 
+#include <print>
+
 namespace nano_edr
 {
 OsSource::OsSource(const std::string& path) : os_(path) {}
 
 void OsSource::Trampoline(const os_event* event, void* context) noexcept
 {
+    auto handler = static_cast<IEventHandler*>(context);
     try
     {
         EventParts parts;
@@ -20,32 +23,37 @@ void OsSource::Trampoline(const os_event* event, void* context) noexcept
             parts.fields.push_back({event->fields[i].key, event->fields[i].value});
         }
 
-        static_cast<Agent*>(context)->HandleEvent(Event(parts));
+        handler->HandleEvent(Event(parts));
     }
     catch (const std::exception& e)
     {
+        handler->OnBroken();
         std::print(stderr, "Ошибка в OsSource::Trampoline:\n{}\n", e.what());
     }
     catch (...)
     {
+        handler->OnBroken();
         std::print(stderr, "Неизвестная ошибка в OsSource::Trampoline\n");
     }
 }
 
-void OsSource::Run(Agent* agent)
+void OsSource::Run(IEventHandler* handler)
 {
-    os_.Subscribe(&OsSource::Trampoline, agent);
+    os_.Subscribe(&OsSource::Trampoline, handler);
     os_.Start();
 
     while (true)
     {
         const os_status status = os_.Wait(100);
         if (status == OS_TIMEOUT)
+        {
+            handler->OnTick();
             continue;
+        }
         if (status == OS_OK)
             break;
         throw std::runtime_error(std::string("Ошибка источника os: ") +
-                                 os_status_str(status));
+                                 os_status_str(status) + "\n");
     }
 }
 }  // namespace nano_edr

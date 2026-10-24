@@ -5,25 +5,25 @@
 
 namespace nano_edr
 {
-bool FieldEquals::operator()(const Event& event) const
+bool FieldEquals::Matches(const Event& event) const
 {
     const std::string* field = FindField(event, key_);
     return field && TextEqualsIgnoreCase(*field, value_);
 }
 
-bool FieldContains::operator()(const Event& event) const
+bool FieldContains::Matches(const Event& event) const
 {
     const std::string* field = FindField(event, key_);
     return field && TextContainsIgnoreCase(*field, needle_);
 }
 
-bool FieldEndsWith::operator()(const Event& event) const
+bool FieldEndsWith::Matches(const Event& event) const
 {
     const std::string* field = FindField(event, key_);
     return field && TextEndsWithIgnoreCase(*field, suffix_);
 }
 
-bool FieldInList::operator()(const Event& event) const
+bool FieldInList::Matches(const Event& event) const
 {
     const std::string* field = FindField(event, key_);
     if (!field) return false;
@@ -34,42 +34,39 @@ bool FieldInList::operator()(const Event& event) const
     return false;
 }
 
-Condition Condition::Equals(const std::string& key,
-                            const std::vector<std::string>& values)
+bool EventTypeIs::Matches(const Event& event) const
 {
-    return Condition(Condition::Match::kEquals, key, values);
-}
-
-Condition Condition::Contains(const std::string& key,
-                              const std::vector<std::string>& values)
-{
-    return Condition(Condition::Match::kContains, key, values);
-}
-
-Condition Condition::EndsWith(const std::string& key,
-                              const std::vector<std::string>& values)
-{
-    return Condition(Condition::Match::kEndsWith, key, values);
-}
-
-bool Condition::operator()(const Event& event) const
-{
-    const std::string* field = FindField(event, key_);
-    if (!field) return false;
-    for (const auto& v : values_)
+    for (auto type : types_)
     {
-        switch (match_)
-        {
-            case Condition::Match::kEquals:
-                if (TextEqualsIgnoreCase(v, *field)) return true;
-                break;
-            case Condition::Match::kContains:
-                if (TextContainsIgnoreCase(*field, v)) return true;
-                break;
-            case Condition::Match::kEndsWith:
-                if (TextEndsWithIgnoreCase(*field, v)) return true;
-                break;
-        }
+        if (type == event.event_type()) return true;
+    }
+    return false;
+}
+
+void AllOf::Add(std::unique_ptr<ICondition> condition)
+{
+    parts_.push_back(std::move(condition));
+}
+
+bool AllOf::Matches(const Event& event) const
+{
+    for (const auto& cond : parts_)
+    {
+        if (!cond->Matches(event)) return false;
+    }
+    return true;
+}
+
+void AnyOf::Add(std::unique_ptr<ICondition> condition)
+{
+    parts_.push_back(std::move(condition));
+}
+
+bool AnyOf::Matches(const Event& event) const
+{
+    for (const auto& cond : parts_)
+    {
+        if (cond->Matches(event)) return true;
     }
     return false;
 }
