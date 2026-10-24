@@ -24,7 +24,7 @@ void OsSource::Trampoline(const os_event* event, void* context) noexcept
     }
     catch (const std::exception& e)
     {
-        std::print(stderr, "Ошибка в OsSource::Trampoline:\n{}", e.what());
+        std::print(stderr, "Ошибка в OsSource::Trampoline:\n{}\n", e.what());
     }
     catch (...)
     {

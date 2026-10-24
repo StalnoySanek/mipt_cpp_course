@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fstream>
 #include <map>
 #include <print>
@@ -5,9 +7,6 @@
 
 #include "event_list.h"
 #include "rule.h"
-
-#ifndef NANO_EDR_AGENT_H
-#define NANO_EDR_AGENT_H
 
 namespace nano_edr
 {
@@ -30,5 +29,3 @@ class Agent
     void print_ctx_();
 };
 }  // namespace nano_edr
-
-#endif

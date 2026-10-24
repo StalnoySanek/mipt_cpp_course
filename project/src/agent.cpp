@@ -37,7 +37,7 @@ void Agent::HandleEvent(const Event& event)
 void Agent::print_ctx_()
 {
     auto ctx = ctx_head_;
-    for (size_t i = ctx_size_; i > 0; --i)
+    for (size_t i = std::min(window_.size(), ctx_size_); i > 0; --i)
     {
         std::print("[CTX] -{}: ts={} type={} pid={}\n",
                    i,

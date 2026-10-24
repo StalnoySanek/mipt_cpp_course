@@ -31,7 +31,7 @@ void FileSource::Run(Agent* agent)
         }
         catch (const std::exception& e)
         {
-            std::print(stderr, "Ошибка в FileSource::Run:\n{}", e.what());
+            std::print(stderr, "Ошибка в FileSource::Run:\n{}\n", e.what());
         }
         catch (...)
         {

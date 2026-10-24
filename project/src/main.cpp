@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     }
     catch (const std::exception& e)
     {
-        std::print(stderr, "Произошла ошибка:\n {}", e.what());
+        std::print(stderr, "Произошла ошибка:\n {}\n", e.what());
         return 1;
     }
 }
