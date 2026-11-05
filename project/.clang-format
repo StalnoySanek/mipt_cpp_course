@@ -78,3 +78,4 @@ AlwaysBreakBeforeMultilineStrings: false
 # Так в курсе написаны 34 ветки из 42, и Google-овское false переписывало бы
 # их в три строки каждую.
 AllowShortCaseLabelsOnASingleLine: true
+BreakBeforeBraces: Allman
