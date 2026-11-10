@@ -9,43 +9,44 @@
 #include "rules.h"
 namespace nano_edr
 {
-Agent::Agent(std::size_t window_size, bool quiet, size_t ctx_size)
-    : cnt_(0), quiet_(quiet), window_(window_size), types_(), engine_(BuildAgentRules()), ctx_size_(ctx_size), ctx_head_(nullptr) {}
+Agent::Agent(bool quiet)
+    : quiet_(quiet), types_(), engine_(BuildAgentRules()) {}
 
 void Agent::HandleEvent(const Event& event)
 {
     ++cnt_;
     ++types_[event.type()];
-    bool detected = false;
     std::vector<const IRule*> fired;
-    engine_.ProcessEvent(event, &fired);
+    size_t detected = engine_.ProcessEvent(event, &fired);
+
+    if (detected && !quiet_) PrintCtx();
+
     for (const auto& rule : fired)
     {
-        detected = true;
         std::print("[DETECT] {}  {}  ts={} pid={}\n",
                    SeverityName(rule->severity()),
                    rule->id(),
                    event.raw_ts(),
                    event.pid());
     }
-    if (!quiet_ && detected)
-        print_ctx_();
-    window_.PushBack(event);
-    ctx_head_ = window_.size() <= ctx_size_ ? window_.head() : ctx_head_->next;
+
+    window_.PushBack(WindowEntry{.ts = event.ts(),
+                                 .type = event.type(),
+                                 .pid = event.pid()});
 }
 
-void Agent::print_ctx_()
+void Agent::PrintCtx()
 {
-    auto ctx = ctx_head_;
-    for (size_t i = std::min(window_.size(), ctx_size_); i > 0; --i)
+    if (window_.empty()) return;
+
+    if (window_.size() > 1)
     {
-        std::print("[CTX] -{}: ts={} type={} pid={}\n",
-                   i,
-                   ctx->event.raw_ts(),
-                   ctx->event.type(),
-                   ctx->event.pid());
-        ctx = ctx->next;
+        const auto& entry = window_[window_.size() - 2];
+        std::print("[CTX] -2: {} {} pid={}\n", entry.ts.ms, entry.type, entry.pid);
     }
+
+    const auto& entry = window_.back();
+    std::print("[CTX] -1: {} {} pid={}\n", entry.ts.ms, entry.type, entry.pid);
 }
 
 void Agent::PrintSummary() const

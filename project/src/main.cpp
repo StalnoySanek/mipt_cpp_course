@@ -11,11 +11,9 @@
 
 struct Options
 {
-    const size_t ctx_size = 2;
     bool is_file_mode = false;
     std::string path;
     bool quiet = false;
-    size_t window_size = 64;
 };
 
 bool parse_options(int argc, char** argv, Options& out)
@@ -27,19 +25,6 @@ bool parse_options(int argc, char** argv, Options& out)
             out.quiet = true;
         else if (arg == "--file")
             out.is_file_mode = true;
-        else if (arg == "--window-size")
-        {
-            if (i + 1 >= argc)
-                return false;
-            i++;
-            const std::string_view window_size_str(argv[i]);
-            const char* begin = window_size_str.data();
-            const char* end = begin + window_size_str.size();
-            const auto res = std::from_chars(begin, end, out.window_size);
-
-            if (res.ec != std::errc() || res.ptr != end)
-                return false;
-        }
         else if (!arg.empty() && arg.front() == '-')
             return false;
         else if (out.path.empty())
@@ -61,7 +46,7 @@ int main(int argc, char** argv)
             return 2;
         }
 
-        nano_edr::Agent agent(options.window_size, options.quiet, options.ctx_size);
+        nano_edr::Agent agent(options.quiet);
         std::unique_ptr<nano_edr::IEventSource> source;
         if (options.is_file_mode)
         {
