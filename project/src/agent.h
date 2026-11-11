@@ -7,15 +7,25 @@
 
 #include "event_list.h"
 #include "event_source.h"
+#include "ring_buffer.h"
 #include "rule.h"
 #include "rule_engine.h"
 
 namespace nano_edr
 {
+
+struct WindowEntry
+{
+    Timestamp ts;
+    std::string type;
+    std::string pid;
+};
 class Agent : public IEventHandler
 {
  public:
-    Agent(std::size_t window_size, bool quiet, size_t ctx_size);
+    static constexpr std::size_t kWindowCapacity = 256;
+
+    explicit Agent(bool quiet);
     void PrintSummary() const;
     void HandleEvent(const Event&) override;
     void OnSkipped() override;
@@ -23,16 +33,14 @@ class Agent : public IEventHandler
     void OnTick() override;
 
  private:
-    size_t cnt_;
     bool quiet_;
-    EventList window_;
+    RingBuffer<WindowEntry, kWindowCapacity> window_;
     std::map<std::string, size_t> types_;
     RuleEngine engine_;
-    size_t ctx_size_;
-    const EventNode* ctx_head_;
     size_t skipped_ = 0;
     size_t broken_ = 0;
+    size_t cnt_ = 0;
 
-    void print_ctx_();
+    void PrintCtx();
 };
 }  // namespace nano_edr

@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "combinators.h"
+#include "make_rule.h"
+
 namespace nano_edr
 {
 namespace
@@ -161,6 +164,28 @@ RuleEngine BuildAgentRules()
     script_host_beacon->SetSecond(std::make_unique<EventTypeIs>(
         std::vector<EventType>{EventType::kNetConnect}));
     engine.AddRule(std::move(script_host_beacon));
+
+    // ----------------------
+    // ----- mass_write -----
+    // ----------------------
+
+    auto mass_write = MakeRule<ThresholdRule<128>>(
+        "ransomware_mass_write", Severity::kCritical,
+        20,
+        10000,
+        "pid");
+    mass_write->SetCondition(MakeCondition(
+        AllOfStatic(
+            EventTypeIs({EventType::kFileCreate,
+                         EventType::kFileWrite,
+                         EventType::kFileMove}),
+            AnyOfStatic(FieldContains("path", R"(\Documents\)"),
+                        FieldContains("path", R"(\Desktop\)"),
+                        FieldContains("to", R"(\Documents\)"),
+                        FieldContains("to", R"(\Desktop\)")))));
+    mass_write->AddAction("kill_process");
+    mass_write->AddAction("quarantine_file");
+    engine.AddRule(std::move(mass_write));
 
     return engine;
 }
