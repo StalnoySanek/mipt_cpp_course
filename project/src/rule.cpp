@@ -49,9 +49,7 @@ bool SequenceRule::Check(const Event& event)
         auto found = pending_.end();
         for (auto it = pending_.begin(); it != pending_.end(); ++it)
         {
-            if (!same_pid_)
-                found = it;
-            else if (it->pid == event.pid())
+            if (Linked(*it, event))
                 found = it;
         }
         if (found != pending_.end())
@@ -67,5 +65,31 @@ bool SequenceRule::Check(const Event& event)
         pending_.push_back({event.ts().ms, event.pid()});
     }
     return false;
+}
+
+LambdaRule::LambdaRule(const std::string& id, Severity severity, Predicate predicate)
+    : RuleBase(id, severity), predicate_(std::move(predicate)) {}
+
+bool LambdaRule::Check(const Event& event)
+{
+    if (!predicate_ || !predicate_(event))
+        return false;
+
+    CountHit();
+    return true;
+}
+
+bool SequenceRule::Linked(const Pending& first, const Event& second) const
+{
+    if (child_of_prev_)
+    {
+        if (model_ == nullptr)
+            return false;
+
+        const auto* child = model_->FindProcess(second.pid());
+        return child != nullptr && child->ppid == first.pid;
+    }
+
+    return !same_pid_ || first.pid == second.pid();
 }
 }  // namespace nano_edr
