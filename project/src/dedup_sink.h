@@ -42,8 +42,8 @@ class DedupSink
     };
 
     AlertSink inner_;
-    uint64_t period_ms_;
-    std::size_t* suppressed_;
+    uint64_t period_ms_ = 0;
+    std::size_t* suppressed_ = nullptr;
     std::vector<Entry> entries_;
 };
 
